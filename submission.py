@@ -50,7 +50,9 @@ class ExactInference(object):
 
     def observe(self, agentX: int, agentY: int, observedDist: float) -> None:
         # BEGIN_YOUR_CODE (our solution is 6 lines of code, but don't worry if you deviate from this)
+        print("We have started!")
         raise Exception("Not implemented yet")
+      
         # END_YOUR_CODE
 
     ##################################################################################
