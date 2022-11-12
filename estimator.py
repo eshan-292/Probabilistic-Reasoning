@@ -1,3 +1,9 @@
+# Vary the total number of particles 
+# Use a better Inverse Function
+# FInd a way to emulate the transitions of the car
+# Use adaptive particle filtering
+
+
 import util 
 import numpy as np
 from util import Belief, pdf 
@@ -48,7 +54,7 @@ class Estimator(object):
                 
         # # Initialisation - Random uniform distribution 
         # numParticles = 100
-        # X = np.random.randint(0, self.belief.numCols, (numParticles, 1))
+        # X = np.random.randint(0, numCols, (numParticles, 1))
         # Y = np.random.randint(0, self.belief.numRows, (numParticles, 1))
 
         # particles = [(X[i], Y[i], 1/numParticles) for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
@@ -56,45 +62,100 @@ class Estimator(object):
         
         # Initialisation based on previous belief values
         numParticles = 100
+        numRows = self.belief.numRows
+        numCols = self.belief.numCols
         prob = np.array(self.belief.grid).flatten() 
 
         # Sampling x and y coordinates of particles based on the probablity distribution calculated until now
-        # coords = [(i, j) for i in range(self.belief.numRows) for j in range(self.belief.numCols)]
+        # coords = [(i, j) for i in range(numRows) for j in range(numCols)]
         # particles = np.random.choices(coords, weights = prob, k = numParticles)
 
-        coords = np.random.choice(self.belief.numRows * self.belief.numCols, numParticles, p=prob)
-        # particles = [[coords[i]//self.belief.numCols, coords[i]%self.belief.numCols, prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
+        coords = np.random.choice(numRows * numCols, numParticles, p=prob)
+        particles = [[coords[i]%numCols, coords[i]//numCols, prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
         # print(particles)
-        X = coords//self.belief.numCols
-        Y = coords%self.belief.numCols
+        # X = coords//numCols
+        # Y = coords%numCols
 
+
+        # Moving the particles probabblistically based on the transition probabilities
+
+        # Estimating the position of car based on probability distribution calculated till now
+        
+        # estimated_pos = coords[np.argmax(prob)]
+        # row = estimated_pos//numCols
+        # col = estimated_pos%numCols
+
+        # print(self.transProb)
+        # # pl = self.transProb[((row,col),(row-1, col))] if row-1>=0 else 0
+        # try: 
+        #     pl = self.transProb[((row,col),(row-1, col))]
+        # except:
+        #     pl = 0
+        # # pr = self.transProb[((row,col),(row+1, col))] if row+1<numRows else 0
+        # try:
+        #     pr = self.transProb[((row,col),(row+1, col))]
+        # except:
+        #     pr = 0
+        # # pu = self.transProb[((row,col),(row, col-1))] if col-1>=0 else 0
+        # try:
+        #     pu = self.transProb[((row,col),(row, col-1))]
+        # except:
+        #     pu = 0
+        # # pd = self.transProb[((row,col),(row, col+1))] if y+1<numCols else 0
+        # try:
+        #     # pd = self.transProb[((row,col),(row, col+1))]
+        #     pd = 1 - pl - pr - pu
+        # except:
+        #     pd = 0
+
+        # # if math.isnan(pl):
+        # #     pl = 1 - pr - pu - pd
+        # # if math.isnan(pr):
+        # #     pr = 1 - pl - pu - pd
+        # # if math.isnan(pu):
+        # #     pu = 1 - pl - pr - pd
+        # # if math.isnan(pd):
+        # #     pd = 1 - pl - pr - pu
+
+        # moves = np.random.choice(4, numParticles, p=[pl, pu, pr, pd])
+        # for i in range(numParticles):
+        #     if moves[i] == 0:
+        #         particles[i][0] -= 1
+        #     elif moves[i] == 1:
+        #         particles[i][1] += 1
+        #     elif moves[i] == 2:
+        #         particles[i][0] += 1
+        #     else:
+        #         particles[i][1] -= 1
+                
         # Recalculating weights based on the observed distance
-        # sum = 0
-        # for i in range(len(particles)):
-        #     x, y, w  =  particles[i]
-        #     d = math.sqrt((x-autocar_x)*(x-autocar_x) + (y-autocar_y)*(y-autocar_y))
-        #     particles[i][2] = abs(d-observedDist)
-        #     sum += abs(d-observedDist)
+        sum = 0
+        for i in range(len(particles)):
+            x, y, w  =  particles[i]
+            d = math.sqrt((x-autocar_x)*(x-autocar_x) + (y-autocar_y)*(y-autocar_y))
+            particles[i][2] = abs(d-observedDist)
+            sum += abs(d-observedDist)
             
-        W = np.abs(np.sqrt((X-autocar_x)*(X-autocar_x) + (Y-autocar_y)*(Y-autocar_y)) - observedDist)
-        sum = np.sum(W)
+        # W = np.abs(np.sqrt((X-autocar_x)*(X-autocar_x) + (Y-autocar_y)*(Y-autocar_y)) - observedDist)
+        # sum = np.sum(W)
 
-        # # Calculating the probability distribution by inverting the weights for each particle 
-        # new_sum = 0
-        # for i in range(len(particles)):
-        #     particles[i][2] = sum - particles[i][2] 
-        #     new_sum += particles[i][2]
+        # Calculating the probability distribution by inverting the weights for each particle 
+        new_sum = 0
+        for i in range(len(particles)):
+            particles[i][2] = sum - particles[i][2] 
+            new_sum += particles[i][2]
 
         # Normalising the probability distribution
         
-        # grid  = [[0 for i in range(self.belief.numCols)] for j in range(self.belief.numRows)]
+        grid  = [[0 for _ in range(numCols)] for _ in range(numRows)]
         
-        for i in range(numParticles):
-            self.belief.setProb(X[i], Y[i], (sum - W[i]))
-            # grid[x][y] += (sum - w)/((numParticles - 1)* sum)
+        for (x, y, w) in particles:
+        # for i in range(numParticles):
+            # self.belief.setProb(X[i], Y[i], (sum - W[i]))
+            grid[y][x] += (w)/(new_sum)
         
-        self.belief.normalize()
-        # self.belief.grid = grid
+        # self.belief.normalize()
+        self.belief.grid = grid
 
         print("GRID: ", self.belief.grid)
         
@@ -104,7 +165,3 @@ class Estimator(object):
   
     def getBelief(self) -> Belief:
         return self.belief
-
-# Test case
-# estimator = Estimator(3, 4)
-# estimator.estimate(0, 0, 0, False)
