@@ -56,18 +56,25 @@ class Estimator(object):
         numCols = self.belief.numCols
         width = numCols * Const.BELIEF_TILE_SIZE
         height = numRows * Const.BELIEF_TILE_SIZE
-        prob = np.array(self.belief.grid).flatten() 
+        # prob = np.array(self.belief.grid).flatten(order = 'C') 
 
         # Sampling x and y coordinates of particles based on the probablity distribution calculated until now
         # coords = [(i, j) for i in range(numRows) for j in range(numCols)]
         # particles = np.random.choices(coords, weights = prob, k = numParticles)
 
         # coords = np.random.choice(numRows * numCols, numParticles, p=prob)
-        coords = random.choices(range(numRows * numCols), k = numParticles, weights = prob)
-        particles = [[util.colToX(coords[i]%numCols), util.rowToY(coords[i]//numCols), prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
+        # coords = random.choices(range(numRows * numCols), k = numParticles, weights = prob)
+        # particles = [[util.colToX(coords[i]%numCols), util.rowToY(coords[i]//numCols), prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
 
+        particles = []
+        for row in range(numRows):
+            for col in range(numCols):
+                w = self.belief.grid[row][col]
+                n = int(w * numParticles)
+                for i in range(n):
+                    particles.append([util.colToX(col), util.rowToY(row), w])
         # Moving the particles probablistically based on the transition probabilities
-
+        numParticles = len(particles)
         # Estimating the position of car based on probability distribution calculated till now
         
         if not isParked:
@@ -137,6 +144,8 @@ class Estimator(object):
 
                 # print(row, col)
                 # print(pl, pr, pu, pd, ps)
+                
+                
                 move = random.choices(range(5), weights=[pl, pu, pr, pd, ps], k = 1)
                 
                 if move == 0:
