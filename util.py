@@ -166,3 +166,7 @@ class Belief(object):
             for c in range(self.numCols):
                 total += self.getProb(r, c)
         return total
+
+
+
+
