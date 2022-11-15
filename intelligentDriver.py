@@ -38,6 +38,8 @@ class IntelligentDriver(Junior):
         self.worldGraph = self.createWorldGraph()
         self.checkPoints = self.layout.getCheckPoints() # a list of single tile locations corresponding to each checkpoint
         self.transProb = util.loadTransProb()
+        self.iter = 1
+
         
     # ONE POSSIBLE WAY OF REPRESENTING THE GRID WORLD. FEEL FREE TO CREATE YOUR OWN REPRESENTATION.
     # Function: Create World Graph
@@ -99,6 +101,7 @@ class IntelligentDriver(Junior):
     # Given the current belief about where other cars are and a graph of how
     # one can driver around the world, chose the next position.
     #######################################################################################
+    
     def getNextGoalPos(self, beliefOfOtherCars: list, parkedCars:list , chkPtsSoFar: int):
         '''
         Input:
@@ -122,17 +125,149 @@ class IntelligentDriver(Junior):
         
         # BEGIN_YOUR_CODE 
 
-        col = util.xToCol(currPos[0])
-        row = util.yToRow(currPos[1])
 
-        G = self.createWorldGraph()
+        #self.iter +=1
+
+    
+
+        if True:
+            col = util.xToCol(currPos[0])
+            row = util.yToRow(currPos[1])
+
+            G = self.worldGraph
+            nodes = G.nodes
+            
+            currNode = (0,0)
+
+            for node in nodes:
+                if node[0] == row and node[1] == col:
+                    currNode = node
+                    break
+            
+            # print("currNode: ", currNode)
+
+            # get the next checkpoint
+            nextChkPt = self.checkPoints[chkPtsSoFar]
+            nextChkPtNode = (0,0)
+            for node in nodes:
+                #node.getPos()
+                # if node[0] == nextChkPt[1] and node[1] == nextChkPt[0]:
+                #     nextChkPtNode = node
+                #     break                
+                if node[0] == nextChkPt[0] and node[1] == nextChkPt[1]:
+                    nextChkPtNode = node
+                    break
+
+            # print("nextChkPtNode: ", nextChkPtNode)
+
+            def getProbOfNode(row, col):
+                prob = 0
+                for b in beliefOfOtherCars:
+                    prob += b.grid[row][col]
+                return prob
+
+            parent_dict = {}
+
+            # BFS on the graph
+            
+            def bfs(currNode, nextChkPtNode):
+                visited = []
+                queue = []
+                queue.append(currNode)
+
+                parent_dict[currNode] = None 
+
+                #visited.append(currNode)
+                s = currNode
+
+                while queue:
+                    s = queue.pop(0)
+                    visited.append(currNode)
+                    if s == nextChkPtNode:
+                        # Goal Found Exit from BFS
+                        break 
+                    
+                    possible_neighbors = []
+                    for edge in G.edges:
+                        if edge[0] == s and edge[1] not in visited:
+                            possible_neighbors.append(edge[1])
+                            # queue.append(edge[1])
+                            # visited.append(edge[1])
+                            # parent_dict[edge[1]] = s
+                    
+                    node_dict = {}       # Dictionary mapping nodes to the probability of any car being in that node
+                    for n in possible_neighbors:
+                        prob = 0
+                        for b in beliefOfOtherCars:
+                            row = node[0]
+                            col = node[1]
+                            prob += b.grid[row][col]
+                        node_dict[n] = prob
+                    
+                    l = sorted(node_dict.items(), key = lambda x : x[1])
+
+                    for (a,b) in l:
+                        queue.append(a)
+                        visited.append(a)
+                        parent_dict[a] = s
 
 
+                # Backtrack to get the path
+                path = []
+                path.append(s)
+                
+                while parent_dict[s] != None:
+                    path.append(parent_dict[s])
+                    s = parent_dict[s]
+                    
+                return path
 
+            path = bfs(currNode, nextChkPtNode)
+            try:
+                goalnode = path[-2]
+                p = getProbOfNode(goalnode[0], goalnode[1])
+                if p > 0.1:
+                    neighbors = []
+                    for edge in G.edges:
+                        if edge[0] == currNode:
+                            neighbors.append(edge[1])
 
+                    min_prob = 1
+                    min_neighbor = None
+                    for n in neighbors:
+                        p = getProbOfNode(n[0], n[1])
+                        if p < min_prob:
+                            min_prob = p
+                            min_neighbor = n
+
+                    goalnode = min_neighbor
+                goalPos = (util.colToX(goalnode[1]), util.rowToY(goalnode[0]))
+
+                # print("GOAL STATE -> ", "(",goalnode[0] ,",",goalnode[1], ")") 
+                
+                # if getProbOfNode(goalnode[0], goalnode[1])>0.1:
+                #     self.iter+=1
+                #     if self.iter%2!=0:
+                #         moveForward = False
+                #         print("Move Forward -> ", moveForward )                
+                    
+
+            except:
+                moveForward = False
+                #print("Move Forward -> ", moveForward )                
+
+        else:
+            moveForward = False
 
         # END_YOUR_CODE
         return goalPos, moveForward
+
+    # def getProbOfNode(row, col, beliefOfOtherCars):
+    #     prob = 0
+    #     for b in beliefOfOtherCars:
+    #         prob += b.grid[row][col]
+
+    #     return prob
 
     # DO NOT MODIFY THIS METHOD !
     # Function: Get Autonomous Actions

@@ -1,0 +1,10 @@
+Eshan Jain - 2020CS50424, Si Siddhanth Raja - 2020CS50443
+
+Part-A -> estimator.py
+
+We have implemented particle filtering algorithm to calculate the required probability distribution. 
+
+
+Part-B -> intelligentDriver.py
+
+We have implemented a BFS based search for the goal state to ensure that the car moves in a directed way to reach the checkpoints. Also, we use the given belief distribution to minimise the chances of collisions with other cars. 
