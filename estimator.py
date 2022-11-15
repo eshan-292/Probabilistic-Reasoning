@@ -21,7 +21,9 @@ class Estimator(object):
     def __init__(self, numRows: int, numCols: int):
         self.belief = util.Belief(numRows, numCols) 
         self.transProb = util.loadTransProb() 
-        # self.particles = []
+        self.particles = []
+        self.table = self.computeTransTable()
+        
         
     ##################################################################################
     # [ Estimation Problem ]
@@ -51,135 +53,157 @@ class Estimator(object):
         # BEGIN_YOUR_CODE
                         
         # Initialisation based on previous belief values
-        numParticles = 1000
+        numParticles = 100
         numRows = self.belief.numRows
         numCols = self.belief.numCols
         width = numCols * Const.BELIEF_TILE_SIZE
         height = numRows * Const.BELIEF_TILE_SIZE
-        # prob = np.array(self.belief.grid).flatten(order = 'C') 
+        prob = np.array(self.belief.grid).flatten(order = 'C') 
 
         # Sampling x and y coordinates of particles based on the probablity distribution calculated until now
         # coords = [(i, j) for i in range(numRows) for j in range(numCols)]
         # particles = np.random.choices(coords, weights = prob, k = numParticles)
 
         # coords = np.random.choice(numRows * numCols, numParticles, p=prob)
-        # coords = random.choices(range(numRows * numCols), k = numParticles, weights = prob)
-        # particles = [[util.colToX(coords[i]%numCols), util.rowToY(coords[i]//numCols), prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
+        coords = random.choices(range(numRows * numCols), k = numParticles, weights = prob)
+        particles = [[util.colToX(coords[i]%numCols), util.rowToY(coords[i]//numCols), prob[coords[i]]] for i in range(numParticles)]      # List of particles represented as (x, y, w), where x and y are the columns and row numbers and w is the corresponding weight of the particle (in range of 0 to 1)
 
-        particles = []
-        for row in range(numRows):
-            for col in range(numCols):
-                w = self.belief.grid[row][col]
-                n = int(w * numParticles)
-                for i in range(n):
-                    particles.append([util.colToX(col), util.rowToY(row), w])
-        # Moving the particles probablistically based on the transition probabilities
-        numParticles = len(particles)
+        # particles = []
+        # for row in range(numRows):
+        #     for col in range(numCols):
+        #         w = self.belief.grid[row][col]
+        #         n = int(w * numParticles)
+        #         for i in range(n):
+        #             particles.append([util.colToX(col), util.rowToY(row), w])
+        # # Moving the particles probablistically based on the transition probabilities
+        # numParticles = len(particles)
+
         # Estimating the position of car based on probability distribution calculated till now
         
         if not isParked:
             for i in range(numParticles):
                 x, y, w = particles[i]
                 col = util.xToCol(x)
-                row = util.yToRow(y)
-                try: 
-                    pl = self.transProb[((row,col),(row-1, col))]
-                except:
-                    pl = 0
-                try: 
-                    pr = self.transProb[((row,col),(row+1, col))]
-                except:
-                    pr = 0
-                try:
-                    pu = self.transProb[((row,col),(row, col-1))]
-                except:
-                    pu = 0
-                try:
-                    pd = self.transProb[((row,col),(row, col+1))]
-                except:
-                    pd = 0
+                row = util.yToRow(y)      
+
+                # print('trans table: ', self.table)
 
                 try:
-                    ps = self.transProb[((row,col),(row, col))]
+                    neighbors_prob = self.table[(row,col)]
+                    dest = random.choices(list(neighbors_prob.keys()), weights = list(neighbors_prob.values()), k = 1)[0]
+                    particles[i][0] = util.colToX(dest[1])
+                    particles[i][1] = util.rowToY(dest[0])
+                    particles[i][2] = neighbors_prob[dest]  
                 except:
-                    ps = 0
-
-
-                if pl == 0 and pr == 0 and pu == 0 and pd == 0 and ps==0 :
-                    pl = 0.2
-                    pu = 0.2
-                    pr = 0.2
-                    pd = 0.2
-                    ps = 0.2
-
-                # try:
-                #     plu = self.transProb[((row,col),(row-1, col+1))]
-                # except:
-                #     plu = 0
-                # try:
-                #     pur = self.transProb[((row,col),(row+1, col+1))]
-                # except:
-                #     pur = 0
-                # try:
-                #     prd = self.transProb[((row,col),(row+1, col-1))]
-                # except:
-                #     prd = 0
-                # try:
-                #     pdl = self.transProb[((row,col),(row-1, col-1))]
-                # except:
-                #     pdl = 0
+                    pass
                 
-                # pdl = 1 - pl - pu - pr - pd - plu - pur - prd 
+                # #SID BOI IMPLEMENT SAMPLING HERE
+                # dest = (-1, -1)
+                # while(not self.ispossible(dest) and len(neighbors_prob)>0):
+                #     dest = random.choices(list(neighbors_prob.keys()), weights = list(neighbors_prob.values()), k = 1)[0]
+                #     # neighbors_prob.pop(dest)
+                
+                # if(dest != (-1, -1)):
+                #     particles[i][0] = util.colToX(dest[1])
+                #     particles[i][1] = util.rowToY(dest[0])
+                #     particles[i][2] = neighbors_prob[dest]                          
+                # try: 
+                #     pl = self.transProb[((row,col),(row-1, col))]
+                # except:
+                #     pl = 0
+                # try: 
+                #     pr = self.transProb[((row,col),(row+1, col))]
+                # except:
+                #     pr = 0
+                # try:
+                #     pu = self.transProb[((row,col),(row, col-1))]
+                # except:
+                #     pu = 0
+                # try:
+                #     pd = self.transProb[((row,col),(row, col+1))]
+                # except:
+                #     pd = 0
+
+                # try:
+                #     ps = self.transProb[((row,col),(row, col))]
+                # except:
+                #     ps = 0
+
+
+                # if pl == 0 and pr == 0 and pu == 0 and pd == 0 and ps==0 :
+                #     pl = 0.2
+                #     pu = 0.2
+                #     pr = 0.2
+                #     pd = 0.2
+                #     ps = 0.2
+
+                # # try:
+                # #     plu = self.transProb[((row,col),(row-1, col+1))]
+                # # except:
+                # #     plu = 0
+                # # try:
+                # #     pur = self.transProb[((row,col),(row+1, col+1))]
+                # # except:
+                # #     pur = 0
+                # # try:
+                # #     prd = self.transProb[((row,col),(row+1, col-1))]
+                # # except:
+                # #     prd = 0
+                # # try:
+                # #     pdl = self.transProb[((row,col),(row-1, col-1))]
+                # # except:
+                # #     pdl = 0
+                
+                # # pdl = 1 - pl - pu - pr - pd - plu - pur - prd 
                     
-                #pd = 1 - pl - pr - pu
-                # except:
-                #     pl = 0.25
-                #     pr = 0.25
-                #     pu = 0.25
-                #     pd = 0.25
-                    # plu = 0.125
-                    # pur = 0.125
-                    # prd = 0.125
-                    # pdl = 0.125
+                # #pd = 1 - pl - pr - pu
+                # # except:
+                # #     pl = 0.25
+                # #     pr = 0.25
+                # #     pu = 0.25
+                # #     pd = 0.25
+                #     # plu = 0.125
+                #     # pur = 0.125
+                #     # prd = 0.125
+                #     # pdl = 0.125
 
-                # print(row, col)
-                # print(pl, pr, pu, pd, ps)
+                # # print(row, col)
+                # # print(pl, pr, pu, pd, ps)
                 
+                # move = random.choices(range(5), weights=[pl, pu, pr, pd, ps], k = 1)
                 
-                move = random.choices(range(5), weights=[pl, pu, pr, pd, ps], k = 1)
-                
-                if move == 0:
-                    if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0:
-                        particles[i][0] -= 1 * Const.BELIEF_TILE_SIZE
-                elif move == 1:
-                    if particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1:
-                        particles[i][1] += 1* Const.BELIEF_TILE_SIZE
-                elif move == 2:
-                    if particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1:
-                        particles[i][0] += 1* Const.BELIEF_TILE_SIZE
-                elif move == 3:
-                    if particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
-                        particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
-                    
-                    
-                # elif move == 4:
-                #     if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0 and particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1:
-                #         particles[i][0] -= 1* Const.BELIEF_TILE_SIZE
+                # if move == 0:
+                #     if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0:
+                #         particles[i][0] -= 1 * Const.BELIEF_TILE_SIZE
+                # elif move == 1:
+                #     if particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1:
                 #         particles[i][1] += 1* Const.BELIEF_TILE_SIZE
-
-                # elif move == 5:
-                #     if particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1 and particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1:
-                #         particles[i][1] += 1* Const.BELIEF_TILE_SIZE
+                # elif move == 2:
+                #     if particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1:
                 #         particles[i][0] += 1* Const.BELIEF_TILE_SIZE
+                # elif move == 3:
+                #     if particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
+                #         particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
+                    
+                    
+                # # elif move == 4:
+                # #     if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0 and particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1:
+                # #         particles[i][0] -= 1* Const.BELIEF_TILE_SIZE
+                # #         particles[i][1] += 1* Const.BELIEF_TILE_SIZE
 
-                # elif move == 6:
-                #     if particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1 and particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
-                #         particles[i][0] += 1* Const.BELIEF_TILE_SIZE
-                #         particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
-                # else:
-                #     if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0 and particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
-                #         particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
-                #         particles[i][0] -= 1* Const.BELIEF_TILE_SIZE
+                # # elif move == 5:
+                # #     if particles[i][1]+(1* Const.BELIEF_TILE_SIZE) <= height-1 and particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1:
+                # #         particles[i][1] += 1* Const.BELIEF_TILE_SIZE
+                # #         particles[i][0] += 1* Const.BELIEF_TILE_SIZE
+
+                # # elif move == 6:
+                # #     if particles[i][0]+(1* Const.BELIEF_TILE_SIZE) <= width-1 and particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
+                # #         particles[i][0] += 1* Const.BELIEF_TILE_SIZE
+                # #         particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
+                # # else:
+                # #     if particles[i][0]-(1* Const.BELIEF_TILE_SIZE) >= 0 and particles[i][1]-(1* Const.BELIEF_TILE_SIZE) >= 0:
+                # #         particles[i][1] -= 1* Const.BELIEF_TILE_SIZE
+                # #         particles[i][0] -= 1* Const.BELIEF_TILE_SIZE
                 
 
         # Recalculating weights based on the observed distance
@@ -205,28 +229,61 @@ class Estimator(object):
         return
         
         
-        
-        
-        
-        t = util.loadTransProb()
+        # t = util.loadTransProb()
+        # # print("FULL DICT: ", t)
+        # print("START")
+        # i = 0
+        # for k in t:
+        #     i = i+1
+        #     a,b = k
+        #     for (x,y) in t.keys():
+        #         if x==a and y!=b and  t[(x, y)] !=0 :
+        #             print(x, ", ", y, " -> ", t[(x, y)] )
+        #     if i==5:
+        #         break
+
+        # print("END")
+        # #print("Trans Prob Dict: ", t[((0,0), (0,1))])
+  
+    def getBelief(self) -> Belief:
+        return self.belief
+
+    def computeTransTable(self):    
+        t = self.transProb
+        table = {}
+
+        for k in t:
+            a,b = k
+            neighbors_prob = {}
+            for (x,y) in t.keys():
+                if x==a  and  t[(x, y)] !=0 :
+                    neighbors_prob[y] = t[(x, y)]
+                    # print(x, ", ", y, " -> ", t[(x, y)] )
+            table[a] = neighbors_prob
+
+        return table
+
+    def trans(self, grid_pos):    
+        neighbors_prob = {}
+        t = self.transProb
         # print("FULL DICT: ", t)
-        print("START")
+        # print("START")
         i = 0
         for k in t:
             i = i+1
             a,b = k
-            for (x,y) in t.keys():
-                if x==a and y!=b and  t[(x, y)] !=0 :
-                    print(x, ", ", y, " -> ", t[(x, y)] )
-            if i==5:
-                break
+            if a==grid_pos:
+                for (x,y) in t.keys():
+                    if x==a  and  t[(x, y)] !=0 :
+                        neighbors_prob[y] = t[(x, y)]
+                        print(x, ", ", y, " -> ", t[(x, y)] )
+            
+        return neighbors_prob
 
-        print("END")
-        #print("Trans Prob Dict: ", t[((0,0), (0,1))])
-  
-    def getBelief(self) -> Belief:
-        return self.belief
-        
+    def ispossible(self, grid_pos):
+        if grid_pos[0]>=0 and grid_pos[0]<self.belief.numRows and grid_pos[1]>=0 and grid_pos[1]<self.belief.numCols:
+            return True
+        return False        
 class Particle:
     def __init__(self, row, col, weight) -> None:
         self.row = row

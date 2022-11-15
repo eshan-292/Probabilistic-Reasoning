@@ -1,3 +1,6 @@
+# Prevent infinte recursion in the case of inifnte looping in motion of car
+
+
 '''
 Licensing Information: Please do not distribute or publish solutions to this
 project. You are free to use and extend Driverless Car for educational
@@ -116,7 +119,17 @@ class IntelligentDriver(Junior):
         moveForward = True
 
         currPos = self.getPos() # the current 2D location of the AutoCar (refer util.py to convert it to tile (or grid cell) coordinate)
+        
         # BEGIN_YOUR_CODE 
+
+        col = util.xToCol(currPos[0])
+        row = util.yToRow(currPos[1])
+
+        G = self.createWorldGraph()
+
+
+
+
 
         # END_YOUR_CODE
         return goalPos, moveForward
