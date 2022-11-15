@@ -144,7 +144,7 @@ class IntelligentDriver(Junior):
                     currNode = node
                     break
             
-            # print("currNode: ", currNode)
+            print("currNode: ", currNode)
 
             # get the next checkpoint
             nextChkPt = self.checkPoints[chkPtsSoFar]
@@ -158,7 +158,7 @@ class IntelligentDriver(Junior):
                     nextChkPtNode = node
                     break
 
-            # print("nextChkPtNode: ", nextChkPtNode)
+            print("nextChkPtNode: ", nextChkPtNode)
 
             def getProbOfNode(row, col):
                 prob = 0
@@ -166,7 +166,27 @@ class IntelligentDriver(Junior):
                     prob += b.grid[row][col]
                 return prob
 
+            def getThreat(row, col):
+                threat = 0
+                count = 0
+                for i in range(-1,2):
+                    for j in range(-1,2):
+                        if row+i >= 0 and row+i < self.layout.getBeliefRows() and col+j >= 0 and col+j < self.layout.getBeliefCols():
+                            if(isobstacle(row+i, col+j)):
+                                threat += 0.3
+                            else:
+                                threat += getProbOfNode(row+i, col+j)
+                            count += 1
+                threat += 3 * getProbOfNode(row, col)
+                return threat/count
+                
             parent_dict = {}
+
+            def isobstacle(row,col):
+                if (row,col) in G.nodes:
+                    return True
+                return False
+                    
 
             # BFS on the graph
             
@@ -232,10 +252,10 @@ class IntelligentDriver(Junior):
                         if edge[0] == currNode:
                             neighbors.append(edge[1])
 
-                    min_prob = 1
+                    min_prob = 10
                     min_neighbor = None
                     for n in neighbors:
-                        p = getProbOfNode(n[0], n[1])
+                        p = getThreat(n[0], n[1])
                         if p < min_prob:
                             min_prob = p
                             min_neighbor = n
@@ -243,7 +263,7 @@ class IntelligentDriver(Junior):
                     goalnode = min_neighbor
                 goalPos = (util.colToX(goalnode[1]), util.rowToY(goalnode[0]))
 
-                # print("GOAL STATE -> ", "(",goalnode[0] ,",",goalnode[1], ")") 
+                print("GOAL STATE -> ", "(",goalnode[0] ,",",goalnode[1], ")") 
                 
                 # if getProbOfNode(goalnode[0], goalnode[1])>0.1:
                 #     self.iter+=1
@@ -254,7 +274,7 @@ class IntelligentDriver(Junior):
 
             except:
                 moveForward = False
-                #print("Move Forward -> ", moveForward )                
+                print("Move Forward -> ", moveForward )                
 
         else:
             moveForward = False
